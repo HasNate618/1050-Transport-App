@@ -1,5 +1,6 @@
 package com.here.routing;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.Log;
 
@@ -20,17 +21,32 @@ public class PointOfInterest {
     public String type, title, description;
     public GeoCoordinates coordinates;
     public MapMarker marker;
+    public static PointOfInterest lastTouchPoint;
 
     private static List<PointOfInterest> all = new ArrayList<>();
 
-    public PointOfInterest(String type, String title, String description, GeoCoordinates coordinates, MapImage image) {
+    public PointOfInterest(String type, String title, String description, GeoCoordinates coordinates) {
         this.type = type;
         this.title = title;
         this.description = description;
         this.coordinates = coordinates;
 
+        int markerImage = 0;
+        switch (type) {
+            case "origin":
+                markerImage = R.drawable.green_dot;
+                break;
+            case "hazard":
+                markerImage = R.drawable.red_dot;
+                break;
+            case "touchPoint":
+                markerImage = R.drawable.green_dot;
+                lastTouchPoint = this;
+                break;
+        }
+
         marker = new MapMarker(coordinates);
-        marker.addImage(image, new MapMarkerImageStyle());
+        marker.addImage(MapImageFactory.fromResource(RoutingExample.context.getResources(), markerImage), new MapMarkerImageStyle());
 
         Metadata metadata = new Metadata();
         metadata.setString("title", title);
@@ -38,6 +54,16 @@ public class PointOfInterest {
         marker.setMetadata(metadata);
 
         all.add(this);
+    }
+
+    public void remove() {
+        all.remove(this);
+        if (Objects.equals(type, "touchPoint")) lastTouchPoint = null;
+    }
+
+    @SuppressLint("DefaultLocale")
+    public String toString() {
+        return String.format("Title: %s, Desc: %s, Lat: %.4f, Long: %.4f", title, description, coordinates.latitude, coordinates.longitude);
     }
 
     public static List<PointOfInterest> getAll() { return all; }

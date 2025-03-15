@@ -87,16 +87,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //public void addRouteButtonClicked(View view) { routingExample.addRoute(); }
-
-    public void addWaypointsButtonClicked(View view) {
-        //routingExample.addWaypoints();
-    }
-
-    public void clearMapButtonClicked(View view) {
-        routingExample.clearMap();
-    }
-
     @Override
     protected void onPause() {
         mapView.onPause();

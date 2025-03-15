@@ -1,27 +1,21 @@
 package com.here.routing;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.os.Debug;
-import android.support.annotation.NonNull;
+import android.security.keystore.StrongBoxUnavailableException;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.view.Gravity;
 
-import com.here.sdk.core.GeoBox;
 import com.here.sdk.core.GeoCoordinates;
 import com.here.sdk.core.GeoPolyline;
-import com.here.sdk.core.Metadata;
 import com.here.sdk.core.Point2D;
-import com.here.sdk.core.Rectangle2D;
-import com.here.sdk.core.Size2D;
 import com.here.sdk.core.errors.InstantiationErrorException;
 import com.here.sdk.gestures.TapListener;
 import com.here.sdk.mapviewlite.Camera;
-import com.here.sdk.mapviewlite.MapImage;
-import com.here.sdk.mapviewlite.MapImageFactory;
 import com.here.sdk.mapviewlite.MapMarker;
-import com.here.sdk.mapviewlite.MapMarkerImageStyle;
 import com.here.sdk.mapviewlite.MapPolyline;
 import com.here.sdk.mapviewlite.MapPolylineStyle;
 import com.here.sdk.mapviewlite.MapViewLite;
@@ -29,20 +23,17 @@ import com.here.sdk.mapviewlite.PickMapItemsCallback;
 import com.here.sdk.mapviewlite.PickMapItemsResult;
 import com.here.sdk.mapviewlite.PixelFormat;
 import com.here.sdk.routing.AvoidanceOptions;
-import com.here.sdk.routing.CalculateRouteCallback;
 import com.here.sdk.routing.CarOptions;
 import com.here.sdk.routing.Maneuver;
 import com.here.sdk.routing.ManeuverAction;
 import com.here.sdk.routing.Route;
 import com.here.sdk.routing.RoutingEngine;
-import com.here.sdk.routing.RoutingError;
 import com.here.sdk.routing.Section;
 import com.here.sdk.routing.TrafficOptimizationMode;
 import com.here.sdk.routing.Waypoint;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -50,15 +41,17 @@ public class RoutingExample {
 
     private static final String TAG = RoutingExample.class.getName();
 
-    private Context context;
-    private MapViewLite mapView;
+    @SuppressLint("StaticFieldLeak")
+    public static Context context;
+    private final MapViewLite mapView;
     private final List<MapPolyline> mapPolylines = new ArrayList<>();
-    private RoutingEngine routingEngine;
-    private GeoCoordinates currentCoords = new GeoCoordinates(42.981485, -81.238093);
+    private final RoutingEngine routingEngine;
+    private final GeoCoordinates currentCoords = new GeoCoordinates(42.981485, -81.238093);
     private PointOfInterest destinationPoint;
+    private boolean markerPicked;
 
     public RoutingExample(Context context, MapViewLite mapView) {
-        this.context = context;
+        RoutingExample.context = context;
         this.mapView = mapView;
         Camera camera = mapView.getCamera();
         camera.setTarget(currentCoords);
@@ -70,28 +63,17 @@ public class RoutingExample {
             throw new RuntimeException("Initialization of RoutingEngine failed: " + e.error.name());
         }
 
-        new PointOfInterest("origin", "Current location", "desc", new GeoCoordinates(42.981485, -81.238093), MapImageFactory.fromResource(context.getResources(), R.drawable.green_dot));
-        new PointOfInterest("hazard", "Fire", "100 degrees C", new GeoCoordinates(42.988274, -81.240670), MapImageFactory.fromResource(context.getResources(), R.drawable.red_dot));
-        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.983192, -81.244332), MapImageFactory.fromResource(context.getResources(), R.drawable.red_dot));
-        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.9855, -81.2456), MapImageFactory.fromResource(context.getResources(), R.drawable.red_dot));
-        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.987353, -81.241746), MapImageFactory.fromResource(context.getResources(), R.drawable.red_dot));
+        new PointOfInterest("origin", "Current location", "desc", new GeoCoordinates(42.981485, -81.238093));
+        new PointOfInterest("hazard", "Fire", "100 degrees C", new GeoCoordinates(42.988274, -81.240670));
+        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.983192, -81.244332));
+        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.9855, -81.2456));
+        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.987353, -81.241746));
 
         drawMarkers();
         setTapGestureHandler();
     }
 
-    public GeoCoordinates midpointCoords(GeoCoordinates[] geoCoordinates){
-        double latSum = 0, longSum = 0;
-        for (GeoCoordinates coordinates: geoCoordinates) {
-            latSum += coordinates.latitude;
-            longSum += coordinates.longitude;
-        }
-
-        return new GeoCoordinates(latSum/geoCoordinates.length, longSum/geoCoordinates.length);
-    }
-
     public void addRoute(GeoCoordinates start, GeoCoordinates end) {
-
         Waypoint startWaypoint = new Waypoint(start);
         Waypoint destinationWaypoint = new Waypoint(end);
 
@@ -116,12 +98,10 @@ public class RoutingExample {
 
     private void showRouteDetails(Route route) {
         long estimatedTravelTimeInSeconds = route.getDuration().getSeconds();
-        long estimatedTrafficDelayInSeconds = route.getTrafficDelay().getSeconds();
         int lengthInMeters = route.getLengthInMeters();
 
         String routeDetails =
                 "Travel Time: " + formatTime(estimatedTravelTimeInSeconds)
-                + ", Traffic delay: " + formatTime(estimatedTrafficDelayInSeconds)
                 + ", Length: " + formatLength(lengthInMeters);
 
         showDialog("Route Details", routeDetails);
@@ -171,6 +151,8 @@ public class RoutingExample {
             return;
         }
 
+        clearMarkers();
+
         for (PointOfInterest poi : PointOfInterest.getAll()) {
             mapView.getMapScene().addMapMarker(poi.marker);
         }
@@ -181,7 +163,7 @@ public class RoutingExample {
         carOptions.routeOptions.enableTolls = true;
         // Disabled - Traffic optimization is completely disabled, including long-term road closures. It helps in producing stable routes.
         // Time dependent - Traffic optimization is enabled, the shape of the route will be adjusted according to the traffic situation which depends on departure time and arrival time.
-        carOptions.routeOptions.trafficOptimizationMode = TrafficOptimizationMode.TIME_DEPENDENT;
+        carOptions.routeOptions.trafficOptimizationMode = TrafficOptimizationMode.DISABLED;
 
         AvoidanceOptions avoidanceOptions = new AvoidanceOptions();
         avoidanceOptions.avoidBoundingBoxAreas = PointOfInterest.getGeoBoxes(15, destinationPoint.marker);
@@ -205,10 +187,7 @@ public class RoutingExample {
 
     public void clearMap() {
         // Clear markers
-        for (MapMarker mapMarker : PointOfInterest.getMapMarkers()) {
-            mapView.getMapScene().removeMapMarker(mapMarker);
-        }
-        PointOfInterest.getMapMarkers().clear();
+        clearMarkers();
 
         // Clear route
         for (MapPolyline mapPolyline : mapPolylines) {
@@ -217,17 +196,25 @@ public class RoutingExample {
         mapPolylines.clear();
     }
 
+    private void clearMarkers() {
+        for (MapMarker mapMarker : PointOfInterest.getMapMarkers()) {
+            mapView.getMapScene().removeMapMarker(mapMarker);
+        }
+        PointOfInterest.getMapMarkers().clear();
+    }
+
     private void setTapGestureHandler() {
         mapView.getGestures().setTapListener(new TapListener() {
             @Override
             public void onTap(Point2D touchPoint) {
                 pickMapMarker(touchPoint);
+                if (!markerPicked) addTouchPoint(mapView.getCamera().viewToGeoCoordinates(touchPoint));
             }
         });
     }
 
     private void pickMapMarker(final Point2D touchPoint) {
-        float radiusInPixel = 4;
+        float radiusInPixel = 10;
         mapView.pickMapItems(touchPoint, radiusInPixel, new PickMapItemsCallback() {
             @Override
             public void onMapItemsPicked(@Nullable PickMapItemsResult pickMapItemsResult) {
@@ -238,18 +225,23 @@ public class RoutingExample {
                 if (topmostMapMarker == null) {
                     return;
                 }
-                //showDialog("Map marker picked:", "Location: " +
-                //        topmostMapMarker.getCoordinates().latitude + ", " +
-                //        topmostMapMarker.getCoordinates().longitude);
+                markerPicked = true;
                 showMarkerDetails(topmostMapMarker);
             }
         });
     }
 
+    private void addTouchPoint(GeoCoordinates coordinates) {
+        new PointOfInterest("touchPoint", "", "", coordinates);
+        if (PointOfInterest.lastTouchPoint != null) mapView.getMapScene().removeMapMarker(PointOfInterest.lastTouchPoint.marker);
+        drawMarkers();
+        showBottomDialog();
+    }
+
     private void showMarkerDetails(MapMarker marker) {
         new AlertDialog.Builder(context)
                 .setTitle(marker.getMetadata().getString("title"))
-                .setMessage("Lat: idk, Long: idk")
+                .setMessage(marker.getMetadata().getString("description"))
                 .setNegativeButton("Close", null)
                 .setPositiveButton("Get Route", new DialogInterface.OnClickListener() {
                     @Override
@@ -258,9 +250,39 @@ public class RoutingExample {
                         addRoute(currentCoords, marker.getCoordinates());
                     }
                 })
+                .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialogInterface) {
+                        markerPicked = false;
+                    }
+                })
                 .show();
     }
 
+    public void showBottomDialog() {
+        AlertDialog dialog = new AlertDialog.Builder(context)
+                .setTitle("Add Hazard Here?")
+                //.setMessage(marker.getMetadata().getString("description"))
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Continue", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+
+                    }
+                })
+                .setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialogInterface) {
+                        mapView.getMapScene().removeMapMarker(PointOfInterest.lastTouchPoint.marker);
+                        PointOfInterest.lastTouchPoint.remove();
+                    }
+                })
+                .create();
+
+        // Set the dialog to show at the bottom
+        dialog.getWindow().setGravity(Gravity.BOTTOM);
+        dialog.show();
+    }
 
     private void showDialog(String title, String message) {
         AlertDialog.Builder builder =
