@@ -43,6 +43,9 @@ public class PointOfInterest {
                 markerImage = R.drawable.green_dot;
                 lastTouchPoint = this;
                 break;
+            case "people":
+                markerImage = R.drawable.red_dot;
+                break;
         }
 
         marker = new MapMarker(coordinates);

@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Transport Solution</string>
+
+    <string-array name="PointTypeArray">
+        <item>Hazard</item>
+        <item>Person(s) in danger</item>
+    </string-array>
 </resources>

@@ -1,11 +1,13 @@
 package com.here.routing;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.security.keystore.StrongBoxUnavailableException;
+import android.content.Intent;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 
@@ -15,6 +17,7 @@ import com.here.sdk.core.Point2D;
 import com.here.sdk.core.errors.InstantiationErrorException;
 import com.here.sdk.gestures.TapListener;
 import com.here.sdk.mapviewlite.Camera;
+import com.here.sdk.mapviewlite.MapImageFactory;
 import com.here.sdk.mapviewlite.MapMarker;
 import com.here.sdk.mapviewlite.MapPolyline;
 import com.here.sdk.mapviewlite.MapPolylineStyle;
@@ -40,6 +43,7 @@ import java.util.Locale;
 public class RoutingExample {
 
     private static final String TAG = RoutingExample.class.getName();
+    private static final int SUBMIT_REQUEST_CODE = 1;
 
     @SuppressLint("StaticFieldLeak")
     public static Context context;
@@ -48,7 +52,7 @@ public class RoutingExample {
     private final RoutingEngine routingEngine;
     private final GeoCoordinates currentCoords = new GeoCoordinates(42.981485, -81.238093);
     private PointOfInterest destinationPoint;
-    private boolean markerPicked;
+    private GeoCoordinates touchCoords;
 
     public RoutingExample(Context context, MapViewLite mapView) {
         RoutingExample.context = context;
@@ -208,7 +212,6 @@ public class RoutingExample {
             @Override
             public void onTap(Point2D touchPoint) {
                 pickMapMarker(touchPoint);
-                if (!markerPicked) addTouchPoint(mapView.getCamera().viewToGeoCoordinates(touchPoint));
             }
         });
     }
@@ -219,13 +222,14 @@ public class RoutingExample {
             @Override
             public void onMapItemsPicked(@Nullable PickMapItemsResult pickMapItemsResult) {
                 if (pickMapItemsResult == null) {
+                    addTouchPoint(mapView.getCamera().viewToGeoCoordinates(touchPoint));
                     return;
                 }
                 MapMarker topmostMapMarker = pickMapItemsResult.getTopmostMarker();
                 if (topmostMapMarker == null) {
+                    addTouchPoint(mapView.getCamera().viewToGeoCoordinates(touchPoint));
                     return;
                 }
-                markerPicked = true;
                 showMarkerDetails(topmostMapMarker);
             }
         });
@@ -234,8 +238,18 @@ public class RoutingExample {
     private void addTouchPoint(GeoCoordinates coordinates) {
         new PointOfInterest("touchPoint", "", "", coordinates);
         if (PointOfInterest.lastTouchPoint != null) mapView.getMapScene().removeMapMarker(PointOfInterest.lastTouchPoint.marker);
+        touchCoords = coordinates;
         drawMarkers();
-        showBottomDialog();
+        showSubmitDialog();
+    }
+
+    public void onSubmitResult(Intent data) {
+        String title = data.getStringExtra("title");
+        String description = data.getStringExtra("description");
+        int typeID = data.getIntExtra("type", 0);
+
+        new PointOfInterest(typeID==0?"hazard":"people", title, "(User Submitted)\n" + description, touchCoords);
+        drawMarkers();
     }
 
     private void showMarkerDetails(MapMarker marker) {
@@ -243,39 +257,31 @@ public class RoutingExample {
                 .setTitle(marker.getMetadata().getString("title"))
                 .setMessage(marker.getMetadata().getString("description"))
                 .setNegativeButton("Close", null)
-                .setPositiveButton("Get Route", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        destinationPoint = PointOfInterest.getFromMarker(marker);
-                        addRoute(currentCoords, marker.getCoordinates());
-                    }
+                .setNeutralButton("Mark As Resolved", (dialogInterface, i) -> {
+                    // Handle "Set Resolved" logic here
+                    mapView.getMapScene().removeMapMarker(marker);
+                    PointOfInterest.getFromMarker(marker).remove();
+                    // remove route if to marker, also if new hazard added in the way
                 })
-                .setOnDismissListener(new DialogInterface.OnDismissListener() {
-                    @Override
-                    public void onDismiss(DialogInterface dialogInterface) {
-                        markerPicked = false;
-                    }
+                .setPositiveButton("Get Route", (dialogInterface, i) -> {
+                    destinationPoint = PointOfInterest.getFromMarker(marker);
+                    addRoute(currentCoords, marker.getCoordinates());
                 })
                 .show();
     }
 
-    public void showBottomDialog() {
+    public void showSubmitDialog() {
         AlertDialog dialog = new AlertDialog.Builder(context)
-                .setTitle("Add Hazard Here?")
+                .setTitle("Add Point Here?")
                 //.setMessage(marker.getMetadata().getString("description"))
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Continue", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-
-                    }
+                .setPositiveButton("Continue", (dialogInterface, i) -> {
+                    Intent intent = new Intent(context, SubmitActivity.class);
+                    ((Activity) context).startActivityForResult(intent, SUBMIT_REQUEST_CODE);
                 })
-                .setOnDismissListener(new DialogInterface.OnDismissListener() {
-                    @Override
-                    public void onDismiss(DialogInterface dialogInterface) {
-                        mapView.getMapScene().removeMapMarker(PointOfInterest.lastTouchPoint.marker);
-                        PointOfInterest.lastTouchPoint.remove();
-                    }
+                .setOnDismissListener(dialogInterface -> {
+                    mapView.getMapScene().removeMapMarker(PointOfInterest.lastTouchPoint.marker);
+                    PointOfInterest.lastTouchPoint.remove();
                 })
                 .create();
 
