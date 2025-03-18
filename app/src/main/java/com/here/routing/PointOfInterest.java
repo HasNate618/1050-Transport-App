@@ -34,17 +34,17 @@ public class PointOfInterest {
         int markerImage = 0;
         switch (type) {
             case "origin":
-                markerImage = R.drawable.green_dot;
+                markerImage = R.drawable.blue_dot;
                 break;
             case "hazard":
-                markerImage = R.drawable.red_dot;
+                markerImage = R.drawable.hazard_icon;
                 break;
             case "touchPoint":
                 markerImage = R.drawable.green_dot;
                 lastTouchPoint = this;
                 break;
             case "people":
-                markerImage = R.drawable.red_dot;
+                markerImage = R.drawable.person_icon;
                 break;
         }
 
@@ -53,8 +53,9 @@ public class PointOfInterest {
 
         Metadata metadata = new Metadata();
         metadata.setString("title", title);
-        metadata.setString("description", description);
+        metadata.setString("description", "Description: " + description);
         marker.setMetadata(metadata);
+
 
         all.add(this);
     }

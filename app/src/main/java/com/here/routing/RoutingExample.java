@@ -67,7 +67,7 @@ public class RoutingExample {
             throw new RuntimeException("Initialization of RoutingEngine failed: " + e.error.name());
         }
 
-        new PointOfInterest("origin", "Current location", "desc", new GeoCoordinates(42.981485, -81.238093));
+        new PointOfInterest("origin", "Current location", "London Firehouse 4", new GeoCoordinates(42.981485, -81.238093));
         new PointOfInterest("hazard", "Fire", "100 degrees C", new GeoCoordinates(42.988274, -81.240670));
         new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.983192, -81.244332));
         new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.9855, -81.2456));
@@ -217,7 +217,7 @@ public class RoutingExample {
     }
 
     private void pickMapMarker(final Point2D touchPoint) {
-        float radiusInPixel = 10;
+        float radiusInPixel = 25;
         mapView.pickMapItems(touchPoint, radiusInPixel, new PickMapItemsCallback() {
             @Override
             public void onMapItemsPicked(@Nullable PickMapItemsResult pickMapItemsResult) {
@@ -248,7 +248,7 @@ public class RoutingExample {
         String description = data.getStringExtra("description");
         int typeID = data.getIntExtra("type", 0);
 
-        new PointOfInterest(typeID==0?"hazard":"people", title, "(User Submitted)\n" + description, touchCoords);
+        new PointOfInterest(typeID==0?"hazard":"people", title + " (User Submitted)", description, touchCoords);
         drawMarkers();
     }
 
@@ -257,11 +257,11 @@ public class RoutingExample {
                 .setTitle(marker.getMetadata().getString("title"))
                 .setMessage(marker.getMetadata().getString("description"))
                 .setNegativeButton("Close", null)
-                .setNeutralButton("Mark As Resolved", (dialogInterface, i) -> {
+                .setNeutralButton("Mark Resolved", (dialogInterface, i) -> {
                     // Handle "Set Resolved" logic here
                     mapView.getMapScene().removeMapMarker(marker);
                     PointOfInterest.getFromMarker(marker).remove();
-                    // remove route if to marker, also if new hazard added in the way
+                    // TODO: remove route if to marker, also if new hazard added in the way
                 })
                 .setPositiveButton("Get Route", (dialogInterface, i) -> {
                     destinationPoint = PointOfInterest.getFromMarker(marker);
@@ -273,7 +273,6 @@ public class RoutingExample {
     public void showSubmitDialog() {
         AlertDialog dialog = new AlertDialog.Builder(context)
                 .setTitle("Add Point Here?")
-                //.setMessage(marker.getMetadata().getString("description"))
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Continue", (dialogInterface, i) -> {
                     Intent intent = new Intent(context, SubmitActivity.class);
