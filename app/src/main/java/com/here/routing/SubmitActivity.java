@@ -75,8 +75,8 @@ public class SubmitActivity extends AppCompatActivity {
     // Enable button if both fields are not empty
     private void checkFields() {
         String title = titleInput.getText().toString().trim();
-        String description = descriptionInput.getText().toString().trim();
+        //String description = descriptionInput.getText().toString().trim();
 
-        submitButton.setEnabled(!title.isEmpty() && !description.isEmpty());
+        submitButton.setEnabled(!title.isEmpty());
     }
 }

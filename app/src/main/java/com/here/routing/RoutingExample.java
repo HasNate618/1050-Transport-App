@@ -67,7 +67,7 @@ public class RoutingExample {
             throw new RuntimeException("Initialization of RoutingEngine failed: " + e.error.name());
         }
 
-        new PointOfInterest("origin", "Current location", "London Firehouse 4", new GeoCoordinates(42.981485, -81.238093));
+        new PointOfInterest("origin", "Current location", "London Firehouse 4", currentCoords);
         new PointOfInterest("hazard", "Fire", "100 degrees C", new GeoCoordinates(42.988274, -81.240670));
         new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.983192, -81.244332));
         new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.9855, -81.2456));
@@ -105,8 +105,8 @@ public class RoutingExample {
         int lengthInMeters = route.getLengthInMeters();
 
         String routeDetails =
-                "Travel Time: " + formatTime(estimatedTravelTimeInSeconds)
-                + ", Length: " + formatLength(lengthInMeters);
+                "Time: " + formatTime(estimatedTravelTimeInSeconds) + " seconds"
+                + "\nLength: " + formatLength(lengthInMeters);
 
         showDialog("Route Details", routeDetails);
     }
@@ -194,10 +194,7 @@ public class RoutingExample {
         clearMarkers();
 
         // Clear route
-        for (MapPolyline mapPolyline : mapPolylines) {
-            mapView.getMapScene().removeMapPolyline(mapPolyline);
-        }
-        mapPolylines.clear();
+        clearRoutes();
     }
 
     private void clearMarkers() {
@@ -205,6 +202,13 @@ public class RoutingExample {
             mapView.getMapScene().removeMapMarker(mapMarker);
         }
         PointOfInterest.getMapMarkers().clear();
+    }
+
+    private void clearRoutes() {
+        for (MapPolyline mapPolyline : mapPolylines) {
+            mapView.getMapScene().removeMapPolyline(mapPolyline);
+        }
+        mapPolylines.clear();
     }
 
     private void setTapGestureHandler() {
@@ -250,6 +254,9 @@ public class RoutingExample {
 
         new PointOfInterest(typeID==0?"hazard":"people", title + " (User Submitted)", description, touchCoords);
         drawMarkers();
+
+        clearRoutes();
+        if (destinationPoint != null) addRoute(currentCoords, destinationPoint.coordinates);
     }
 
     private void showMarkerDetails(MapMarker marker) {
@@ -260,8 +267,10 @@ public class RoutingExample {
                 .setNeutralButton("Mark Resolved", (dialogInterface, i) -> {
                     // Handle "Set Resolved" logic here
                     mapView.getMapScene().removeMapMarker(marker);
+
+                    // Clear route if destination removed
+                    if (PointOfInterest.getFromMarker(marker)==destinationPoint) clearRoutes();
                     PointOfInterest.getFromMarker(marker).remove();
-                    // TODO: remove route if to marker, also if new hazard added in the way
                 })
                 .setPositiveButton("Get Route", (dialogInterface, i) -> {
                     destinationPoint = PointOfInterest.getFromMarker(marker);
