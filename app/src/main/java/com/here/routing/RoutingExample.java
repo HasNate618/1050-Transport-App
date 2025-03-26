@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.support.annotation.LongDef;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -105,24 +106,16 @@ public class RoutingExample {
         int lengthInMeters = route.getLengthInMeters();
 
         String routeDetails =
-                "Time: " + formatTime(estimatedTravelTimeInSeconds) + " seconds"
-                + "\nLength: " + formatLength(lengthInMeters);
+                "Time: " + formatTime(estimatedTravelTimeInSeconds) + " seconds "
+                + "\nDistance: " + lengthInMeters + " metres";
 
         showDialog("Route Details", routeDetails);
     }
 
     private String formatTime(long sec) {
-        long hours = sec / 3600;
         long minutes = (sec % 3600) / 60;
-
-        return String.format(Locale.getDefault(), "%02d:%02d", hours, minutes);
-    }
-
-    private String formatLength(int meters) {
-        int kilometers = meters / 1000;
-        int remainingMeters = meters % 1000;
-
-        return String.format(Locale.getDefault(), "%02d.%02d km", kilometers, remainingMeters);
+        sec %= 60;
+        return String.format(Locale.getDefault(), "%d:%02d", minutes, sec);
     }
 
     private void showRouteOnMap(Route route) {
@@ -209,6 +202,9 @@ public class RoutingExample {
             mapView.getMapScene().removeMapPolyline(mapPolyline);
         }
         mapPolylines.clear();
+
+        destinationPoint = null;
+        //mapView.getMapScene().removeMapMarker(PointOfInterest.lastTouchPoint.marker);
     }
 
     private void setTapGestureHandler() {
@@ -274,7 +270,7 @@ public class RoutingExample {
                 })
                 .setPositiveButton("Get Route", (dialogInterface, i) -> {
                     destinationPoint = PointOfInterest.getFromMarker(marker);
-                    addRoute(currentCoords, marker.getCoordinates());
+                    addRoute(currentCoords, destinationPoint.coordinates);
                 })
                 .show();
     }

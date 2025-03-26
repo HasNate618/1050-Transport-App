@@ -53,7 +53,7 @@ public class PointOfInterest {
 
         Metadata metadata = new Metadata();
         metadata.setString("title", title);
-        metadata.setString("description", "Description: " + description);
+        metadata.setString("description", "Description: " + ((description.isEmpty())?"N/A":description));
         marker.setMetadata(metadata);
 
 
