@@ -3,12 +3,9 @@ package com.here.routing;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.support.annotation.LongDef;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 
@@ -18,7 +15,6 @@ import com.here.sdk.core.Point2D;
 import com.here.sdk.core.errors.InstantiationErrorException;
 import com.here.sdk.gestures.TapListener;
 import com.here.sdk.mapviewlite.Camera;
-import com.here.sdk.mapviewlite.MapImageFactory;
 import com.here.sdk.mapviewlite.MapMarker;
 import com.here.sdk.mapviewlite.MapPolyline;
 import com.here.sdk.mapviewlite.MapPolylineStyle;
@@ -40,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RoutingExample {
 
@@ -269,6 +266,10 @@ public class RoutingExample {
                     PointOfInterest.getFromMarker(marker).remove();
                 })
                 .setPositiveButton("Get Route", (dialogInterface, i) -> {
+                    for (PointOfInterest poi : PointOfInterest.getType("touchPoint")) {
+                        poi.remove();
+                        mapView.getMapScene().removeMapMarker(poi.marker);
+                    }
                     destinationPoint = PointOfInterest.getFromMarker(marker);
                     addRoute(currentCoords, destinationPoint.coordinates);
                 })
@@ -276,14 +277,27 @@ public class RoutingExample {
     }
 
     public void showSubmitDialog() {
+        AtomicBoolean choseRoute = new AtomicBoolean(false);
         AlertDialog dialog = new AlertDialog.Builder(context)
                 .setTitle("Add Point Here?")
+                .setNeutralButton("Get Route", (dialogInterface, i) -> {
+                    destinationPoint = PointOfInterest.lastTouchPoint;
+                    addRoute(currentCoords, destinationPoint.coordinates);
+                    choseRoute.set(true);
+                })
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Continue", (dialogInterface, i) -> {
                     Intent intent = new Intent(context, SubmitActivity.class);
                     ((Activity) context).startActivityForResult(intent, SUBMIT_REQUEST_CODE);
                 })
                 .setOnDismissListener(dialogInterface -> {
+                    if (choseRoute.get()) {
+                        for (PointOfInterest poi : PointOfInterest.getTypeExcluding("touchPoint", PointOfInterest.lastTouchPoint.marker)) {
+                            poi.remove();
+                            mapView.getMapScene().removeMapMarker(poi.marker);
+                        }
+                        return;
+                    }
                     mapView.getMapScene().removeMapMarker(PointOfInterest.lastTouchPoint.marker);
                     PointOfInterest.lastTouchPoint.remove();
                 })

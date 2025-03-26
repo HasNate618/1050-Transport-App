@@ -62,7 +62,7 @@ public class PointOfInterest {
 
     public void remove() {
         all.remove(this);
-        if (Objects.equals(type, "touchPoint")) lastTouchPoint = null;
+        //if (Objects.equals(type, "touchPoint")) lastTouchPoint = null;
     }
 
     @SuppressLint("DefaultLocale")
