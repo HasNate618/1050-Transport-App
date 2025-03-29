@@ -261,8 +261,9 @@ public class RoutingExample {
         String description = data.getStringExtra("description");
         int typeID = data.getIntExtra("type", 0);
 
-        new PointOfInterest(typeID==0?"hazard":"people", title, description, touchCoords, true);
+        JsonApi.addPOIInBackground(new PointOfInterest(typeID==0?"hazard":"people", title, description, touchCoords, true));
         drawMarkers();
+
 
         clearRoutes();
         if (destinationPoint != null) addRoute(currentCoords, destinationPoint.coordinates);

@@ -154,4 +154,84 @@ public class JsonApi {
             System.out.println("Error occurred while removing POI: " + e.getMessage());
         }
     }
+
+    public static void addPOIInBackground(PointOfInterest newPoi) {
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                addPOI(newPoi); // Calls the existing addPOI function
+            }
+        });
+    }
+
+    public static void addPOI(PointOfInterest newPoi) {
+        try {
+            // 1. Fetch current POI data from the JSON bin
+            URL url = new URL(JSON_BIN_URL);  // Replace with your JSON Bin URL
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("X-Master-Key", Secrets.X_MASTER_KEY);  // Replace with your API key
+
+            connection.connect();
+
+            // Read the response
+            InputStream inStream = connection.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inStream, StandardCharsets.UTF_8));
+            StringBuilder responseBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                responseBuilder.append(line);
+            }
+            connection.disconnect();
+
+            // Parse the fetched JSON
+            JSONObject jsonResponse = new JSONObject(responseBuilder.toString());
+
+            // 2. Retrieve the "points" array from the response
+            JSONArray pointsArray = jsonResponse.getJSONObject("record").getJSONArray("points");
+
+            // 3. Create a new POI JSONObject
+            JSONObject newPoiJson = new JSONObject();
+            newPoiJson.put("type", newPoi.type);
+            newPoiJson.put("title", newPoi.title);
+            newPoiJson.put("description", newPoi.description);
+            newPoiJson.put("coordinates", new JSONObject()
+                    .put("latitude", newPoi.coordinates.latitude)
+                    .put("longitude", newPoi.coordinates.longitude));
+            newPoiJson.put("userSubmitted", true);
+
+            // 4. Add the new POI to the points array
+            pointsArray.put(newPoiJson);
+
+            // 5. Prepare the updated JSON to send back to the JSON bin, only the "points" array
+            JSONObject updatedJson = new JSONObject();
+            updatedJson.put("points", pointsArray);  // Only include the "points" array, no "record" wrapper
+
+            // 6. Send the updated data back with a PUT request
+            URL putUrl = new URL(JSON_BIN_URL);  // Replace with your JSON Bin URL
+            HttpURLConnection putConnection = (HttpURLConnection) putUrl.openConnection();
+            putConnection.setRequestMethod("PUT");
+            putConnection.setRequestProperty("X-Master-Key", Secrets.X_MASTER_KEY);
+            putConnection.setRequestProperty("Content-Type", "application/json");
+
+            putConnection.setDoOutput(true);
+            try (OutputStream os = putConnection.getOutputStream()) {
+                byte[] input = updatedJson.toString().getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+
+            // Get the response from the PUT request
+            int responseCode = putConnection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                System.out.println("POI added and updated successfully.");
+            } else {
+                System.out.println("Failed to update POIs. Response Code: " + responseCode);
+            }
+
+            putConnection.disconnect();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Error occurred while adding POI: " + e.getMessage());
+        }
+    }
 }
