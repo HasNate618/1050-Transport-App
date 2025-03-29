@@ -7,17 +7,24 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!--<Button
-        android:layout_width="0dp"
+    <!-- Refresh Points Button -->
+    <Button
+        android:id="@+id/refreshButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="Add Hazard Here"
-        android:onClick="addRouteButtonClicked" />-->
+        android:text="Refresh Points"
+        android:onClick="refreshApp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="16dp"
+        android:backgroundTint="@android:color/background_light"
+        />
 
+    <!-- Map View -->
     <com.here.sdk.mapviewlite.MapViewLite
         android:id="@+id/map_view"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-    </com.here.sdk.mapviewlite.MapViewLite>
+        android:layout_height="match_parent"/>
 
 </android.support.constraint.ConstraintLayout>
