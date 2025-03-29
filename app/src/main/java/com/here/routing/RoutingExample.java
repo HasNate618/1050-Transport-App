@@ -277,9 +277,13 @@ public class RoutingExample {
                     // Handle "Set Resolved" logic here
                     mapView.getMapScene().removeMapMarker(marker);
 
+                    // Remove point from database
+                    JsonApi.removePOIInBackground(PointOfInterest.getFromMarker(marker).title);
+
                     // Clear route if destination removed
                     if (PointOfInterest.getFromMarker(marker)==destinationPoint) clearRoutes();
                     PointOfInterest.getFromMarker(marker).remove();
+
                 })
                 .setPositiveButton("Get Route", (dialogInterface, i) -> {
                     for (PointOfInterest poi : PointOfInterest.getType("touchPoint")) {
