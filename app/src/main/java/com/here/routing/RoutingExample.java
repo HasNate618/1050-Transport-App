@@ -15,7 +15,9 @@ import com.here.sdk.core.Point2D;
 import com.here.sdk.core.errors.InstantiationErrorException;
 import com.here.sdk.gestures.TapListener;
 import com.here.sdk.mapviewlite.Camera;
+import com.here.sdk.mapviewlite.MapImageFactory;
 import com.here.sdk.mapviewlite.MapMarker;
+import com.here.sdk.mapviewlite.MapMarkerImageStyle;
 import com.here.sdk.mapviewlite.MapPolyline;
 import com.here.sdk.mapviewlite.MapPolylineStyle;
 import com.here.sdk.mapviewlite.MapViewLite;
@@ -65,13 +67,22 @@ public class RoutingExample {
             throw new RuntimeException("Initialization of RoutingEngine failed: " + e.error.name());
         }
 
-        new PointOfInterest("origin", "Current location", "London Firehouse 4", currentCoords);
-        new PointOfInterest("hazard", "Fire", "100 degrees C", new GeoCoordinates(42.988274, -81.240670));
-        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.983192, -81.244332));
-        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.9855, -81.2456));
-        new PointOfInterest("hazard", "Fire", "120 degrees C", new GeoCoordinates(42.987353, -81.241746));
+        new PointOfInterest("origin", "Current location", "London Firehouse 4", currentCoords, false);
 
-        drawMarkers();
+        JsonApi.fetchJsonData(context, new JsonApi.DataCallback() {
+            @Override
+            public void onSuccess(List<PointOfInterest> points) {
+                for (PointOfInterest poi : points) {
+                    Log.d("POI", poi.toString());
+                }
+                drawMarkers();
+            }
+            @Override
+            public void onError(String error) {
+                Log.e("ERROR", "Failed to fetch JSON: " + error);
+            }
+        });
+
         setTapGestureHandler();
     }
 
@@ -233,7 +244,7 @@ public class RoutingExample {
     }
 
     private void addTouchPoint(GeoCoordinates coordinates) {
-        new PointOfInterest("touchPoint", "", "", coordinates);
+        new PointOfInterest("touchPoint", "Destination", "", coordinates, true);
         if (PointOfInterest.lastTouchPoint != null) mapView.getMapScene().removeMapMarker(PointOfInterest.lastTouchPoint.marker);
         touchCoords = coordinates;
         drawMarkers();
@@ -241,11 +252,16 @@ public class RoutingExample {
     }
 
     public void onSubmitResult(Intent data) {
+        for (PointOfInterest poi : PointOfInterest.getType("touchPoint")) {
+            poi.remove();
+            mapView.getMapScene().removeMapMarker(poi.marker);
+        }
+
         String title = data.getStringExtra("title");
         String description = data.getStringExtra("description");
         int typeID = data.getIntExtra("type", 0);
 
-        new PointOfInterest(typeID==0?"hazard":"people", title + " (User Submitted)", description, touchCoords);
+        new PointOfInterest(typeID==0?"hazard":"people", title, description, touchCoords, true);
         drawMarkers();
 
         clearRoutes();
@@ -271,6 +287,7 @@ public class RoutingExample {
                         mapView.getMapScene().removeMapMarker(poi.marker);
                     }
                     destinationPoint = PointOfInterest.getFromMarker(marker);
+                    assert destinationPoint != null;
                     addRoute(currentCoords, destinationPoint.coordinates);
                 })
                 .show();

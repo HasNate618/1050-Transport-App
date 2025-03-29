@@ -22,14 +22,16 @@ public class PointOfInterest {
     public GeoCoordinates coordinates;
     public MapMarker marker;
     public static PointOfInterest lastTouchPoint;
+    public boolean userSubmitted;
 
     private static List<PointOfInterest> all = new ArrayList<>();
 
-    public PointOfInterest(String type, String title, String description, GeoCoordinates coordinates) {
+    public PointOfInterest(String type, String title, String description, GeoCoordinates coordinates, boolean userSubmitted) {
         this.type = type;
         this.title = title;
         this.description = description;
         this.coordinates = coordinates;
+        this.userSubmitted = userSubmitted;
 
         int markerImage = 0;
         switch (type) {
@@ -52,11 +54,11 @@ public class PointOfInterest {
         marker.addImage(MapImageFactory.fromResource(RoutingExample.context.getResources(), markerImage), new MapMarkerImageStyle());
 
         Metadata metadata = new Metadata();
-        metadata.setString("title", title);
+        metadata.setString("title", title + (userSubmitted?" (User)":" (Drone)"));
         metadata.setString("description", "Description: " + ((description.isEmpty())?"N/A":description));
         marker.setMetadata(metadata);
 
-
+        Log.d("POI", this.toString());
         all.add(this);
     }
 
@@ -67,7 +69,7 @@ public class PointOfInterest {
 
     @SuppressLint("DefaultLocale")
     public String toString() {
-        return String.format("Title: %s, Desc: %s, Lat: %.4f, Long: %.4f", title, description, coordinates.latitude, coordinates.longitude);
+        return String.format("Type: %s, Title: %s, Desc: %s, Lat: %.4f, Long: %.4f", type, title, description, coordinates.latitude, coordinates.longitude);
     }
 
     public static List<PointOfInterest> getAll() { return all; }
