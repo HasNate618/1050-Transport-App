@@ -33,3 +33,4 @@ google-services.json
 *.hprof
 
 app/src/main/java/com/here/routing/Secrets.java
+Arduino/secrets.h
