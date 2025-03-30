@@ -21,6 +21,8 @@ The app is designed to be intuitive, ensuring that **users can easily mark hazar
 
 ✔ **Additional Drone Based Geodata** – Drones attached with the smart device can make use of sensors and computer vision to report hazards based on temperature, CO2 levels and humidity.
 
+✔ **Hazard Avoidance Routing** – The app generates a route to your destination that avoids hazardous locations, keeping users out of harms way.
+
 ✔ **Data Synchronization** – The app fetches and updates hazard data dynamically from JsonBin, ensuring that users always have access to the most up-to-date information.  
 
 ✔ **Hazard Removal** – Users can mark outdated hazards as resolved, ensuring that the map remains relevant and accurate.  
