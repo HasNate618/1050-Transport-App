@@ -86,6 +86,26 @@ public class RoutingExample {
         setTapGestureHandler();
     }
 
+    public void fetchAndUpdateMap() {
+        JsonApi.fetchJsonData(context, new JsonApi.DataCallback() {
+            @Override
+            public void onSuccess(List<PointOfInterest> points) {
+                // Clear existing markers before adding new ones
+                clearMarkers();
+                // Add new POIs to the map
+                for (PointOfInterest poi : points) {
+                    Log.d("POI", "Loaded POI: " + poi.toString());
+                }
+                drawMarkers();
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.e("ERROR", "Failed to fetch updated POIs: " + error);
+            }
+        });
+    }
+
     public void addRoute(GeoCoordinates start, GeoCoordinates end) {
         Waypoint startWaypoint = new Waypoint(start);
         Waypoint destinationWaypoint = new Waypoint(end);
@@ -114,7 +134,7 @@ public class RoutingExample {
         int lengthInMeters = route.getLengthInMeters();
 
         String routeDetails =
-                "Time: " + formatTime(estimatedTravelTimeInSeconds) + " seconds "
+                "Time: " + formatTime(estimatedTravelTimeInSeconds) + " minutes "
                 + "\nDistance: " + lengthInMeters + " metres";
 
         showDialog("Route Details", routeDetails);
@@ -252,11 +272,6 @@ public class RoutingExample {
     }
 
     public void onSubmitResult(Intent data) {
-        for (PointOfInterest poi : PointOfInterest.getType("touchPoint")) {
-            poi.remove();
-            mapView.getMapScene().removeMapMarker(poi.marker);
-        }
-
         String title = data.getStringExtra("title");
         String description = data.getStringExtra("description");
         int typeID = data.getIntExtra("type", 0);
@@ -264,9 +279,12 @@ public class RoutingExample {
         JsonApi.addPOIInBackground(new PointOfInterest(typeID==0?"hazard":"people", title, description, touchCoords, true));
         drawMarkers();
 
-
         clearRoutes();
-        if (destinationPoint != null) addRoute(currentCoords, destinationPoint.coordinates);
+        List<PointOfInterest> touchPoint = PointOfInterest.getType("touchPoint");
+        if (!touchPoint.isEmpty()) {
+            destinationPoint = touchPoint.get(0);
+            addRoute(currentCoords, touchPoint.get(0).coordinates);
+        }
     }
 
     private void showMarkerDetails(MapMarker marker) {

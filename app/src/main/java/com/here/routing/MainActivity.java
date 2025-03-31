@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void refreshApp(View view) {
-        recreate();
+        routingExample.fetchAndUpdateMap();
     }
 
     @Override
