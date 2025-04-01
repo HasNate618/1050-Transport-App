@@ -1,6 +1,6 @@
 # **Project Overview**  
 
-The **Hazard Tracking App** is a mobile application designed to **enhance real-time hazard reporting and visualization** in an interactive and user-friendly manner.  
+**SafeRoute** is a mobile application designed to **enhance real-time hazard reporting and visualization** in an interactive and user-friendly manner.  
 
 The primary goal of this app is to allow users to **report and view hazardous locations** in real time on an interactive map. This can be particularly useful in situations where road obstructions, weather-related hazards, or construction zones could pose a danger to commuters.  
 
