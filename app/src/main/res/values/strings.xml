@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Transport Solution</string>
+    <string name="app_name">SafeRoute</string>
 
     <string-array name="PointTypeArray">
         <item>Hazard</item>
